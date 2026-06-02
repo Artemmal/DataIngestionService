@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="docker-compose.yml" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/DataIngestionService.Api/DataIngestionService.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DataIngestionService.Tests/DataIngestionService.Tests.csproj" />
+  </Folder>
+</Solution>
