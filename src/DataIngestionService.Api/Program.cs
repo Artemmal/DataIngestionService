@@ -1,5 +1,6 @@
 using DataIngestionService.Api.Persistence;
 using DataIngestionService.Api.Services;
+using DataIngestionService.Api.Services.Abstractions;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 
 builder.Services.AddScoped<DeduplicationService>();
+builder.Services.AddScoped<ITransactionIngestionService, TransactionIngestionService>();
 
 var app = builder.Build();
 
