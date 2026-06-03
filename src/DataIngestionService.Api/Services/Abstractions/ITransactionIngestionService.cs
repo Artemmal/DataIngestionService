@@ -8,5 +8,9 @@ namespace DataIngestionService.Api.Services.Abstractions
         Task<CreateTransactionResponse> CreateTransactionAsync(
             CreateTransactionRequest request,
             CancellationToken cancellationToken);
+
+        Task<BatchIngestionResponse> IngestBatchAsync(
+            IFormFile file,
+            CancellationToken cancellationToken);
     }
 }

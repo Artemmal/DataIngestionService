@@ -1,6 +1,7 @@
 ﻿using DataIngestionService.Api.Exceptions;
 using DataIngestionService.Api.Models.Requests;
 using DataIngestionService.Api.Services;
+using DataIngestionService.Api.Validators;
 using DataIngestionService.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +17,8 @@ namespace DataIngestionService.Tests.Services
             await using var dbContext = DbContextFactory.Create();
 
             var deduplicationService = new DeduplicationService();
-            var service = new TransactionIngestionService(dbContext, deduplicationService);
+            var validator = new CreateTransactionRequestValidator();
+            var service = new TransactionIngestionService(dbContext, deduplicationService, validator);
 
             var request = CreateRequest();
 
@@ -44,7 +46,8 @@ namespace DataIngestionService.Tests.Services
             await using var dbContext = DbContextFactory.Create();
 
             var deduplicationService = new DeduplicationService();
-            var service = new TransactionIngestionService(dbContext, deduplicationService);
+            var validator = new CreateTransactionRequestValidator();
+            var service = new TransactionIngestionService(dbContext, deduplicationService, validator);
 
             var request = new CreateTransactionRequest
             {
@@ -75,7 +78,8 @@ namespace DataIngestionService.Tests.Services
             await using var dbContext = DbContextFactory.Create();
 
             var deduplicationService = new DeduplicationService();
-            var service = new TransactionIngestionService(dbContext, deduplicationService);
+            var validator = new CreateTransactionRequestValidator();
+            var service = new TransactionIngestionService(dbContext, deduplicationService, validator);
 
             var request = CreateRequest();
 
