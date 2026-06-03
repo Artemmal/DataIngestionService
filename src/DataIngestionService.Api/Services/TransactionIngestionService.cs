@@ -10,6 +10,7 @@ using DataIngestionService.Api.Persistence;
 using DataIngestionService.Api.Services.Abstractions;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using System.Globalization;
 
 namespace DataIngestionService.Api.Services
@@ -36,14 +37,16 @@ namespace DataIngestionService.Api.Services
             CreateTransactionRequest request,
             CancellationToken cancellationToken)
         {
-            var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+            var normalizedRequest = NormalizeRequest(request);
+
+            var validationResult = await _validator.ValidateAsync(normalizedRequest, cancellationToken);
 
             if (!validationResult.IsValid)
             {
                 throw new FluentValidation.ValidationException(validationResult.Errors);
             }
 
-            var deduplicationHash = _deduplicationService.GenerateHash(request);
+            var deduplicationHash = _deduplicationService.GenerateHash(normalizedRequest);
 
             var duplicateExists = await _dbContext.Transactions
                 .AnyAsync(x => x.DeduplicationHash == deduplicationHash, cancellationToken);
@@ -53,7 +56,7 @@ namespace DataIngestionService.Api.Services
                 throw new DuplicateTransactionException();
             }
 
-            var transaction = CreateTransactionEntity(request, deduplicationHash);
+            var transaction = CreateTransactionEntity(normalizedRequest, deduplicationHash);
 
             _dbContext.Transactions.Add(transaction);
 
@@ -61,14 +64,9 @@ namespace DataIngestionService.Api.Services
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
             {
-                if (await IsDuplicateAsync(deduplicationHash, cancellationToken))
-                {
-                    throw new DuplicateTransactionException();
-                }
-
-                throw;
+                throw new DuplicateTransactionException();
             }
 
             return new CreateTransactionResponse
@@ -133,7 +131,9 @@ namespace DataIngestionService.Api.Services
                     continue;
                 }
 
-                var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+                var normalizedRequest = NormalizeRequest(request);
+
+                var validationResult = await _validator.ValidateAsync(normalizedRequest, cancellationToken);
 
                 if (!validationResult.IsValid)
                 {
@@ -151,7 +151,7 @@ namespace DataIngestionService.Api.Services
                     continue;
                 }
 
-                var deduplicationHash = _deduplicationService.GenerateHash(request);
+                var deduplicationHash = _deduplicationService.GenerateHash(normalizedRequest);
 
                 if (!hashesInCurrentFile.Add(deduplicationHash))
                 {
@@ -182,7 +182,7 @@ namespace DataIngestionService.Api.Services
                     continue;
                 }
 
-                transactionsToInsert.Add(CreateTransactionEntity(request, deduplicationHash));
+                transactionsToInsert.Add(CreateTransactionEntity(normalizedRequest, deduplicationHash));
 
                 if (transactionsToInsert.Count >= BatchSize)
                 {
@@ -207,9 +207,28 @@ namespace DataIngestionService.Api.Services
         {
             _dbContext.Transactions.AddRange(transactions);
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+            {
+                throw new DuplicateTransactionException();
+            }
 
             _dbContext.ChangeTracker.Clear();
+        }
+
+        private static CreateTransactionRequest NormalizeRequest(CreateTransactionRequest request)
+        {
+            return new CreateTransactionRequest
+            {
+                CustomerId = request.CustomerId?.Trim(),
+                TransactionDate = request.TransactionDate,
+                Amount = request.Amount,
+                Currency = request.Currency?.Trim().ToUpperInvariant(),
+                SourceChannel = request.SourceChannel?.Trim()
+            };
         }
 
         private static Transaction CreateTransactionEntity(
@@ -219,22 +238,20 @@ namespace DataIngestionService.Api.Services
             return new Transaction
             {
                 Id = Guid.NewGuid(),
-                CustomerId = request.CustomerId!.Trim(),
+                CustomerId = request.CustomerId!,
                 TransactionDate = request.TransactionDate!.Value.ToUniversalTime(),
                 Amount = request.Amount!.Value,
-                Currency = request.Currency!.Trim().ToUpperInvariant(),
-                SourceChannel = request.SourceChannel!.Trim(),
+                Currency = request.Currency!,
+                SourceChannel = request.SourceChannel!,
                 DeduplicationHash = deduplicationHash,
                 CreatedAtUtc = DateTime.UtcNow
             };
         }
 
-        private async Task<bool> IsDuplicateAsync(
-            string deduplicationHash,
-            CancellationToken cancellationToken)
+        private static bool IsUniqueConstraintViolation(DbUpdateException exception)
         {
-            return await _dbContext.Transactions
-                .AnyAsync(x => x.DeduplicationHash == deduplicationHash, cancellationToken);
+            return exception.InnerException is PostgresException postgresException &&
+                   postgresException.SqlState == PostgresErrorCodes.UniqueViolation;
         }
     }
 }

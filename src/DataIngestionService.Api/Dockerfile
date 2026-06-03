@@ -1,11 +1,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY DataIngestionService.sln ./
 COPY src/DataIngestionService.Api/DataIngestionService.Api.csproj src/DataIngestionService.Api/
-COPY tests/DataIngestionService.Tests/DataIngestionService.Tests.csproj tests/DataIngestionService.Tests/
 
-RUN dotnet restore
+RUN dotnet restore src/DataIngestionService.Api/DataIngestionService.Api.csproj
 
 COPY . .
 

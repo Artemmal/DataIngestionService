@@ -1,6 +1,7 @@
 ﻿using DataIngestionService.Api.Models.Csv;
 using DataIngestionService.Api.Models.Requests;
 using DataIngestionService.Api.Models.Responses;
+using System.Globalization;
 
 namespace DataIngestionService.Api.Mapping
 {
@@ -20,9 +21,13 @@ namespace DataIngestionService.Api.Mapping
                 SourceChannel = row.SourceChannel
             };
 
-            if (DateTime.TryParse(row.TransactionDate, out var transactionDate))
+            if (DateTime.TryParse(
+                    row.TransactionDate,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                    out var transactionDate))
             {
-                request.TransactionDate = DateTime.SpecifyKind(transactionDate, DateTimeKind.Utc);
+                request.TransactionDate = transactionDate;
             }
             else
             {
@@ -34,7 +39,11 @@ namespace DataIngestionService.Api.Mapping
                 });
             }
 
-            if (decimal.TryParse(row.Amount, out var amount))
+            if (decimal.TryParse(
+                    row.Amount,
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out var amount))
             {
                 request.Amount = amount;
             }
