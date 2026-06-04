@@ -530,7 +530,7 @@ docker-compose down -v
 
 ## AI Usage
 
-I used ChatGPT and GitHub Copilot to help structure the solution, review architectural trade-offs, generate implementation drafts, and improve README wording.
+I used ChatGPT and GitHub Copilot with Claude model to help structure the solution, review architectural trade-offs, generate implementation drafts, and improve README wording.
 
 ### Which tools did you use and for what?
 
@@ -541,7 +541,7 @@ I used ChatGPT for:
 - Improving the README structure and wording.
 - Troubleshooting Docker and test issues.
 
-I used GitHub Copilot for:
+I used Claude for:
 
 - Drafting initial endpoint and DTO designs.
 - Reviewing validation and deduplication rules.
