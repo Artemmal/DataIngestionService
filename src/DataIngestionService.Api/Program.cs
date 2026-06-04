@@ -1,3 +1,4 @@
+using DataIngestionService.Api.Middleware;
 using DataIngestionService.Api.Persistence;
 using DataIngestionService.Api.Services;
 using DataIngestionService.Api.Services.Abstractions;
@@ -32,6 +33,8 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     dbContext.Database.Migrate();
 }
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseSwagger();
 app.UseSwaggerUI();

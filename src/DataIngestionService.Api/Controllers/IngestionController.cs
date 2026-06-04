@@ -1,8 +1,6 @@
-﻿using DataIngestionService.Api.Exceptions;
-using DataIngestionService.Api.Models.Requests;
+﻿using DataIngestionService.Api.Models.Requests;
 using DataIngestionService.Api.Models.Responses;
 using DataIngestionService.Api.Services.Abstractions;
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DataIngestionService.Api.Controllers
@@ -20,48 +18,23 @@ namespace DataIngestionService.Api.Controllers
 
         [HttpPost("transaction")]
         [ProducesResponseType(typeof(CreateTransactionResponse), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
         public async Task<ActionResult<CreateTransactionResponse>> CreateTransaction(
             [FromBody] CreateTransactionRequest request,
             CancellationToken cancellationToken)
         {
-            try
-            {
-                var response = await _transactionIngestionService.CreateTransactionAsync(
-                    request,
-                    cancellationToken);
+            var response = await _transactionIngestionService.CreateTransactionAsync(
+                request,
+                cancellationToken);
 
-                return StatusCode(StatusCodes.Status201Created, response);
-            }
-            catch (DuplicateTransactionException ex)
-            {
-                return Conflict(new ErrorResponse
-                {
-                    Status = StatusCodes.Status409Conflict,
-                    Title = "Duplicate transaction",
-                    Detail = ex.Message
-                });
-            }
-            catch (ValidationException ex)
-            {
-                return BadRequest(new
-                {
-                    Status = StatusCodes.Status400BadRequest,
-                    Title = "Validation failed",
-                    Errors = ex.Errors.Select(error => new
-                    {
-                        Field = error.PropertyName,
-                        Message = error.ErrorMessage
-                    })
-                });
-            }
+            return StatusCode(StatusCodes.Status201Created, response);
         }
 
         [HttpPost("batch")]
         [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(BatchIngestionResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<BatchIngestionResponse>> IngestBatch(
             IFormFile file,
             CancellationToken cancellationToken)
